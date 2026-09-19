@@ -12,7 +12,6 @@ from bs4 import BeautifulSoup
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8873781750:AAGQM8fr7FMXnA-Az76ENswTXtjw17u2DyM")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "7726602615")
 
-# Strict accessory exclusion tokens
 GADGET_EXCLUDES = [
     "case", "cover", "tempered", "lens", "protector", "skin", "sticker", 
     "vinyl", "wrap", "film", "lamination", "layer", "back", "pouch", 
@@ -24,8 +23,21 @@ GADGET_EXCLUDES = [
     "hybrid", "matte", "frosted", "stand", "holder", "holster"
 ]
 
-# Comprehensive 20-category tracking matrix
 MASTER_TARGET_RULES = [
+    # --- TARGET: APPLE MACBOOK AIR M2 (Capped at 60k) ---
+    {
+        "name": "Apple MacBook Air M2",
+        "min_price": 40000,
+        "max_price": 60000,
+        "keywords": ["macbook", "air", "m2"],
+        "excludes": [
+            "cover", "case", "sleeve", "skin", "guard", "bag", "hub", "adapter", 
+            "cable", "dummy", "screen protector", "keyboard skin", "pro", "m1", "m3"
+        ],
+        "flipkart_url": "https://www.flipkart.com/search?q=apple+macbook+air+m2&sort=price_asc",
+        "amazon_url": "https://www.amazon.in/s?k=apple+macbook+air+m2&s=price-asc-rank"
+    },
+
     # --- LAPTOP WRITING / DRAWING TABLETS ---
     {
         "name": "Pro Writing Pad (Wacom/XP-Pen/Huion)",
@@ -129,7 +141,7 @@ MASTER_TARGET_RULES = [
         "amazon_url": "https://www.amazon.in/s?k=jio+bharat+v4&s=price-asc-rank"
     },
 
-    # --- 2.5GHz+ GLITCH DROP RADARS ---
+    # --- GLITCH DROP RADARS ---
     {
         "name": "Samsung 5G Glitch Hunter",
         "min_price": 1,
@@ -279,7 +291,6 @@ def send_telegram_alert(title: str, price: int, platform: str, link: str):
         print(f"[!] Telegram alert failed: {e}", flush=True)
 
 def telegram_message_listener():
-    """Listens for user commands like /start and /status in Telegram"""
     offset = None
     base_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
     print("[*] Telegram listener initialized...", flush=True)
@@ -329,22 +340,18 @@ def telegram_message_listener():
 
 # ==================== PARSER AND SCRAPING ENGINES ====================
 def validate_item(title: str, link: str, rule: dict) -> bool:
-    # 1. Clean the title
     title_clean = re.sub(r"[^a-z0-9\s]", " ", title.lower())
-    
-    # 2. Extract only the path part of the link to avoid matching ?k= query strings
     url_path = link.split("?")[0].lower()
     path_clean = re.sub(r"[^a-z0-9\s]", " ", url_path)
     combined_for_excludes = f"{title_clean} {path_clean}"
 
-    # 3. Exclude check: title or product URL path
+    # 1. Exclude check: reject if an excluded token appears in title or URL path
     for ex in rule["excludes"]:
         if ex in combined_for_excludes:
             return False
 
-    # 4. Mandatory Target Keywords: Must exist in the TITLE itself
+    # 2. Mandatory Target Keywords: Must appear directly in the product TITLE
     for kw in rule["keywords"]:
-        # Word boundary check (\b) ensures numbers like "10" don't match substrings like "100"
         pattern = r"\b" + re.escape(kw) + r"\b"
         if not re.search(pattern, title_clean):
             return False
@@ -400,7 +407,6 @@ def scan_amazon_feed(session, feed_url: str, rule: dict):
         cards = soup.find_all("div", {"data-component-type": "s-search-result"})
 
         for card in cards:
-            # Fix Amazon truncated title: Extract full string from h2 > a > span or aria-label
             title = ""
             h2_el = card.find("h2")
             if h2_el:
@@ -472,15 +478,12 @@ def scanner_loop():
 
 # ==================== EXECUTION ENTRY POINT ====================
 if __name__ == "__main__":
-    # Start web keep-alive server
     t_web = threading.Thread(target=run_web_server, daemon=True)
     t_web.start()
 
-    # Start Telegram command handler
     t_bot = threading.Thread(target=telegram_message_listener, daemon=True)
     t_bot.start()
 
-    # Send startup confirmation
     try:
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
@@ -494,5 +497,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"[!] Startup alert failed: {e}", flush=True)
 
-    # Start the continuous scanner
     scanner_loop()
