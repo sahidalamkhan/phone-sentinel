@@ -9,8 +9,8 @@ from curl_cffi import requests as cureq
 from bs4 import BeautifulSoup
 
 # ==================== CONFIGURATION ====================
-TELEGRAM_BOT_TOKEN = "8873781750:AAGQM8fr7FMXnA-Az76ENswTXtjw17u2DyM"
-TELEGRAM_CHAT_ID = "7726602615"
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8873781750:AAGQM8fr7FMXnA-Az76ENswTXtjw17u2DyM")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "7726602615")
 
 GADGET_EXCLUDES = [
     "case", "cover", "tempered", "lens", "protector", "skin", "sticker", 
@@ -39,7 +39,7 @@ MASTER_TARGET_RULES = [
         "name": "Google Pixel 10",
         "min_price": 10000,
         "max_price": 25000,
-        "keywords": ["pixel 10"],
+        "keywords": ["pixel", "10"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=google+pixel+10&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=google+pixel+10&s=price-asc-rank"
@@ -57,7 +57,7 @@ MASTER_TARGET_RULES = [
         "name": "Samsung Galaxy S26 Ultra",
         "min_price": 20000,
         "max_price": 50000,
-        "keywords": ["s26 ultra"],
+        "keywords": ["s26", "ultra"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=samsung+s26+ultra&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=samsung+s26+ultra&s=price-asc-rank"
@@ -66,7 +66,7 @@ MASTER_TARGET_RULES = [
         "name": "iPhone 18 Pro Max",
         "min_price": 40000,
         "max_price": 120000,
-        "keywords": ["iphone 18 pro max"],
+        "keywords": ["iphone", "18", "pro", "max"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=iphone+18+pro+max&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone+18+pro+max&s=price-asc-rank"
@@ -75,7 +75,7 @@ MASTER_TARGET_RULES = [
         "name": "iPhone 17 Pro Max",
         "min_price": 30000,
         "max_price": 100000,
-        "keywords": ["iphone 17 pro max"],
+        "keywords": ["iphone", "17", "pro", "max"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=iphone+17+pro+max&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone+17+pro+max&s=price-asc-rank"
@@ -84,7 +84,7 @@ MASTER_TARGET_RULES = [
         "name": "iPhone 16 Pro Max",
         "min_price": 20000,
         "max_price": 50000,
-        "keywords": ["iphone 16 pro max"],
+        "keywords": ["iphone", "16", "pro", "max"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=iphone+16+pro+max&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone+16+pro+max&s=price-asc-rank"
@@ -93,7 +93,7 @@ MASTER_TARGET_RULES = [
         "name": "iPhone 16 Pro",
         "min_price": 18000,
         "max_price": 40000,
-        "keywords": ["iphone 16 pro"],
+        "keywords": ["iphone", "16", "pro"],
         "excludes": GADGET_EXCLUDES + ["max"],
         "flipkart_url": "https://www.flipkart.com/search?q=iphone+16+pro&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone+16+pro&s=price-asc-rank"
@@ -102,7 +102,7 @@ MASTER_TARGET_RULES = [
         "name": "iPhone 15 Pro Max",
         "min_price": 15000,
         "max_price": 40000,
-        "keywords": ["iphone 15 pro max"],
+        "keywords": ["iphone", "15", "pro", "max"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=iphone+15+pro+max&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone+15+pro+max&s=price-asc-rank"
@@ -111,7 +111,7 @@ MASTER_TARGET_RULES = [
         "name": "iPhone 14 Plus",
         "min_price": 10000,
         "max_price": 30000,
-        "keywords": ["iphone 14 plus"],
+        "keywords": ["iphone", "14", "plus"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=iphone+14+plus&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone+14+plus&s=price-asc-rank"
@@ -120,13 +120,14 @@ MASTER_TARGET_RULES = [
         "name": "Jio Bharat V4",
         "min_price": 50,
         "max_price": 920,
-        "keywords": ["jio bharat v4"],
-        "excludes": ["charger", "battery", "case", "cover", "earphone"],
+        # Split tokens ensure "JioBharat", "Jio-Bharat", and "Jio Bharat" all match successfully
+        "keywords": ["jio", "v4"],
+        "excludes": ["charger", "battery", "case", "cover", "earphone", "glass", "tempered"],
         "flipkart_url": "https://www.flipkart.com/search?q=jio+bharat+v4&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=jio+bharat+v4&s=price-asc-rank"
     },
 
-    # --- 2.5GHz+ GLITCH DROP RADARS (SAMSUNG, REALME, VIVO, OPPO, APPLE) ---
+    # --- 2.5GHz+ GLITCH DROP RADARS ---
     {
         "name": "Samsung 5G Glitch Hunter",
         "min_price": 1,
@@ -178,7 +179,7 @@ MASTER_TARGET_RULES = [
         "name": "Mustard Oil 1L",
         "min_price": 40,
         "max_price": 100,
-        "keywords": ["mustard oil", "1 l"],
+        "keywords": ["mustard", "oil"],
         "excludes": ["15 l", "5 l", "500 ml", "200 ml", "bottle only"],
         "flipkart_url": "https://www.flipkart.com/search?q=mustard+oil+1l&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=mustard+oil+1l&s=price-asc-rank"
@@ -187,7 +188,7 @@ MASTER_TARGET_RULES = [
         "name": "Saloni Kachchhi Ghani 5L",
         "min_price": 200,
         "max_price": 500,
-        "keywords": ["saloni", "5 l"],
+        "keywords": ["saloni", "5"],
         "excludes": ["1 l", "500 ml", "empty tin"],
         "flipkart_url": "https://www.flipkart.com/search?q=saloni+kachchi+ghani+5l&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=saloni+mustard+oil+5l&s=price-asc-rank"
@@ -196,7 +197,7 @@ MASTER_TARGET_RULES = [
         "name": "Parachute Coconut Oil 1L",
         "min_price": 60,
         "max_price": 200,
-        "keywords": ["parachute", "1 l"],
+        "keywords": ["parachute", "1"],
         "excludes": ["body lotion", "500 ml", "200 ml", "100 ml"],
         "flipkart_url": "https://www.flipkart.com/search?q=parachute+coconut+oil+1l&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=parachute+coconut+oil+1l&s=price-asc-rank"
@@ -213,9 +214,17 @@ MASTER_TARGET_RULES = [
 ]
 
 HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Referer": "https://www.google.com/"
+    "Sec-Ch-Ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1"
 }
 
 # ==================== CLOUD KEEP-ALIVE SERVER ====================
@@ -226,8 +235,8 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"Master Sentinel Cloud Engine is running 24/7.")
 
-    # Fixes UptimeRobot 501 Not Implemented (UptimeRobot defaults to HEAD)
     def do_HEAD(self):
+        # Solves UptimeRobot 501 Not Implemented
         self.send_response(200)
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
@@ -252,7 +261,7 @@ def send_telegram_alert(title: str, price: int, platform: str, link: str):
         f"<b>Item:</b> {title}\n"
         f"<b>Platform:</b> {platform}\n"
         f"<b>Price:</b> ₹{price:,}\n\n"
-        f"⚡ <b>Tap below to buy immediately on your phone:</b>\n"
+        f"⚡ <b>Tap below to buy immediately:</b>\n"
         f"👉 <a href='{link}'>OPEN PRODUCT / CHECKOUT</a>"
     )
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -263,26 +272,33 @@ def send_telegram_alert(title: str, price: int, platform: str, link: str):
         "disable_web_page_preview": False
     }
     try:
-        requests.post(url, data=payload, timeout=8)
+        r = requests.post(url, json=payload, timeout=8)
+        print(f"[Telegram Notification] Status: {r.status_code}", flush=True)
     except Exception as e:
         print(f"[!] Telegram alert failed: {e}", flush=True)
 
 def telegram_message_listener():
     """Listens for user commands like /start and /status in Telegram"""
-    offset = 0
+    offset = None
     base_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+    print("[*] Telegram listener initialized...", flush=True)
+
     while True:
         try:
-            resp = requests.get(f"{base_url}/getUpdates?offset={offset}&timeout=20", timeout=30)
+            params = {"timeout": 20}
+            if offset is not None:
+                params["offset"] = offset
+
+            resp = requests.get(f"{base_url}/getUpdates", params=params, timeout=25)
             if resp.status_code == 200:
                 data = resp.json()
                 for update in data.get("result", []):
                     offset = update["update_id"] + 1
                     msg = update.get("message", {})
                     chat_id = msg.get("chat", {}).get("id")
-                    text = msg.get("text", "")
+                    text = msg.get("text", "").strip()
 
-                    if not chat_id:
+                    if not chat_id or not text:
                         continue
 
                     if text.startswith("/start"):
@@ -294,27 +310,32 @@ def telegram_message_listener():
                         )
                         requests.post(
                             f"{base_url}/sendMessage",
-                            data={"chat_id": chat_id, "text": welcome_text, "parse_mode": "HTML"},
+                            json={"chat_id": chat_id, "text": welcome_text, "parse_mode": "HTML"},
                             timeout=8
                         )
                     elif text.startswith("/status"):
                         requests.post(
                             f"{base_url}/sendMessage",
-                            data={"chat_id": chat_id, "text": "🟢 System Status: Active and running."},
+                            json={"chat_id": chat_id, "text": "🟢 System Status: Active and hunting deals."},
                             timeout=8
                         )
-        except Exception:
-            pass
-        time.sleep(1)
+            elif resp.status_code == 409:
+                requests.get(f"{base_url}/deleteWebhook")
+                time.sleep(2)
+        except Exception as e:
+            time.sleep(2)
+        time.sleep(0.5)
 
 # ==================== PARSER AND SCRAPING ENGINES ====================
 def validate_item(title: str, rule: dict) -> bool:
-    t_low = title.lower()
+    t_clean = re.sub(r"[^a-z0-9\s]", " ", title.lower())
+    # 1. Check excludes
     for ex in rule["excludes"]:
-        if ex in t_low:
+        if ex in t_clean:
             return False
+    # 2. Check keywords (all tokens must appear in title)
     for kw in rule["keywords"]:
-        if kw not in t_low:
+        if kw not in t_clean:
             return False
     return True
 
@@ -323,24 +344,35 @@ def scan_flipkart_feed(session, feed_url: str, rule: dict):
     try:
         resp = session.get(feed_url, headers=HEADERS, timeout=12)
         if resp.status_code != 200:
+            print(f"[!] Flipkart returned HTTP {resp.status_code}", flush=True)
             return items
+
         soup = BeautifulSoup(resp.text, "html.parser")
-        cards = soup.find_all("div", {"class": re.compile(r"tUxRFH|cPHDOP|_1sdMkc")})
+        cards = soup.find_all("div", {"class": re.compile(r"tUxRFH|cPHDOP|_1sdMkc|slAVV4|_75nlfW")})
+        
         for card in cards:
-            title_el = card.find("div", {"class": re.compile(r"KzDlHZ|wjcEIp|_4rR01T")}) or card.find("a", {"title": True})
+            title_el = (
+                card.find("div", {"class": re.compile(r"KzDlHZ|wjcEIp|_4rR01T")}) or 
+                card.find("a", {"class": re.compile(r"WKTcLC")}) or
+                card.find("a", {"title": True})
+            )
             price_el = card.find("div", {"class": re.compile(r"Nx9bqj|_30jeq3")})
             link_el = card.find("a", href=True)
+
             if title_el and price_el and link_el:
                 title = title_el.get_text().strip() or title_el.get("title", "")
                 if validate_item(title, rule):
+                    price = clean_price(price_el.get_text())
+                    href = link_el["href"]
+                    link = href if href.startswith("http") else "https://www.flipkart.com" + href
                     items.append({
                         "title": title,
-                        "price": clean_price(price_el.get_text()),
-                        "link": "https://www.flipkart.com" + link_el["href"],
+                        "price": price,
+                        "link": link,
                         "platform": "Flipkart"
                     })
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[!] Flipkart scrape exception for {rule['name']}: {e}", flush=True)
     return items
 
 def scan_amazon_feed(session, feed_url: str, rule: dict):
@@ -348,13 +380,17 @@ def scan_amazon_feed(session, feed_url: str, rule: dict):
     try:
         resp = session.get(feed_url, headers=HEADERS, timeout=12)
         if resp.status_code != 200:
+            print(f"[!] Amazon returned HTTP {resp.status_code}", flush=True)
             return items
+
         soup = BeautifulSoup(resp.text, "html.parser")
         cards = soup.find_all("div", {"data-component-type": "s-search-result"})
+
         for card in cards:
             title_el = card.find("h2")
             price_el = card.find("span", {"class": "a-price-whole"})
-            link_el = card.find("a", {"class": "a-link-normal s-no-outline"}, href=True)
+            link_el = card.find("a", {"class": re.compile(r"a-link-normal")}, href=True)
+
             if title_el and price_el and link_el:
                 title = title_el.get_text().strip()
                 if validate_item(title, rule):
@@ -366,8 +402,8 @@ def scan_amazon_feed(session, feed_url: str, rule: dict):
                         "link": full_link,
                         "platform": "Amazon"
                     })
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[!] Amazon scrape exception for {rule['name']}: {e}", flush=True)
     return items
 
 # ==================== MAIN SCANNER LOOP ====================
@@ -386,10 +422,11 @@ def scanner_loop():
                 fk_items = scan_flipkart_feed(session, rule["flipkart_url"], rule)
                 for item in fk_items:
                     p = item["price"]
+                    print(f"[{rule['name']} | FK] Found: {item['title'][:40]}... @ ₹{p}", flush=True)
                     if min_p <= p <= max_p:
                         if item["link"] not in alerted_links:
                             alerted_links.add(item["link"])
-                            print(f"[TARGET HIT] {item['title']} @ ₹{p:,} on Flipkart", flush=True)
+                            print(f"🔥 [TARGET HIT] {item['title']} @ ₹{p:,} on Flipkart", flush=True)
                             send_telegram_alert(item["title"], p, "Flipkart", item["link"])
                 time.sleep(2)
 
@@ -397,34 +434,35 @@ def scanner_loop():
                 amz_items = scan_amazon_feed(session, rule["amazon_url"], rule)
                 for item in amz_items:
                     p = item["price"]
+                    print(f"[{rule['name']} | AMZ] Found: {item['title'][:40]}... @ ₹{p}", flush=True)
                     if min_p <= p <= max_p:
                         if item["link"] not in alerted_links:
                             alerted_links.add(item["link"])
-                            print(f"[TARGET HIT] {item['title']} @ ₹{p:,} on Amazon", flush=True)
+                            print(f"🔥 [TARGET HIT] {item['title']} @ ₹{p:,} on Amazon", flush=True)
                             send_telegram_alert(item["title"], p, "Amazon", item["link"])
                 time.sleep(2)
 
-            print("Sweep cycle complete across all categories. Resting 60s...", flush=True)
+            print("--- Cycle complete. Resting 60s ---", flush=True)
         except Exception as e:
-            print(f"[!] Scanner loop exception: {e}", flush=True)
+            print(f"[!] Scanner loop error: {e}", flush=True)
 
         time.sleep(60)
 
 # ==================== EXECUTION ENTRY POINT ====================
 if __name__ == "__main__":
-    # 1. Run web server in background to keep Render alive
+    # Start web keep-alive server
     t_web = threading.Thread(target=run_web_server, daemon=True)
     t_web.start()
 
-    # 2. Run Telegram listener to handle /start and incoming messages
+    # Start Telegram message handler
     t_bot = threading.Thread(target=telegram_message_listener, daemon=True)
     t_bot.start()
 
-    # 3. Send confirmation ping to Telegram
+    # Send a launch notification
     try:
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            data={
+            json={
                 "chat_id": TELEGRAM_CHAT_ID,
                 "text": "🟢 <b>Master Sentinel Bot is online and tracking deals!</b>",
                 "parse_mode": "HTML"
@@ -432,7 +470,7 @@ if __name__ == "__main__":
             timeout=8
         )
     except Exception as e:
-        print(f"[!] Startup ping failed: {e}", flush=True)
+        print(f"[!] Startup alert failed: {e}", flush=True)
 
-    # 4. Start main scanner loop
+    # Start the continuous scanner
     scanner_loop()
