@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8873781750:AAGQM8fr7FMXnA-Az76ENswTXtjw17u2DyM")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "7726602615")
 
-# Aggressive exclusion list to prevent accessories/cases from triggering phone alerts
+# Strict accessory exclusion tokens
 GADGET_EXCLUDES = [
     "case", "cover", "tempered", "lens", "protector", "skin", "sticker", 
     "vinyl", "wrap", "film", "lamination", "layer", "back", "pouch", 
@@ -274,7 +274,7 @@ def send_telegram_alert(title: str, price: int, platform: str, link: str):
     }
     try:
         r = requests.post(url, json=payload, timeout=8)
-        print(f"[Telegram Alert] Sent status code: {r.status_code}", flush=True)
+        print(f"[Telegram Alert] Status: {r.status_code}", flush=True)
     except Exception as e:
         print(f"[!] Telegram alert failed: {e}", flush=True)
 
@@ -329,21 +329,24 @@ def telegram_message_listener():
 
 # ==================== PARSER AND SCRAPING ENGINES ====================
 def validate_item(title: str, link: str, rule: dict) -> bool:
-    """
-    Validates both the product title AND url path.
-    Prevents accessory listings hiding 'cover/case' inside the URL path from passing.
-    """
-    combined_raw = f"{title} {link}".lower()
-    combined_clean = re.sub(r"[^a-z0-9\s]", " ", combined_raw)
+    # 1. Clean the title
+    title_clean = re.sub(r"[^a-z0-9\s]", " ", title.lower())
+    
+    # 2. Extract only the path part of the link to avoid matching ?k= query strings
+    url_path = link.split("?")[0].lower()
+    path_clean = re.sub(r"[^a-z0-9\s]", " ", url_path)
+    combined_for_excludes = f"{title_clean} {path_clean}"
 
-    # 1. Check excludes across title and link
+    # 3. Exclude check: title or product URL path
     for ex in rule["excludes"]:
-        if ex in combined_clean:
+        if ex in combined_for_excludes:
             return False
 
-    # 2. Match all required target keywords
+    # 4. Mandatory Target Keywords: Must exist in the TITLE itself
     for kw in rule["keywords"]:
-        if kw not in combined_clean:
+        # Word boundary check (\b) ensures numbers like "10" don't match substrings like "100"
+        pattern = r"\b" + re.escape(kw) + r"\b"
+        if not re.search(pattern, title_clean):
             return False
 
     return True
@@ -397,12 +400,20 @@ def scan_amazon_feed(session, feed_url: str, rule: dict):
         cards = soup.find_all("div", {"data-component-type": "s-search-result"})
 
         for card in cards:
-            title_el = card.find("h2")
+            # Fix Amazon truncated title: Extract full string from h2 > a > span or aria-label
+            title = ""
+            h2_el = card.find("h2")
+            if h2_el:
+                span_el = h2_el.find("span", {"class": re.compile(r"a-text-normal")}) or h2_el.find("span")
+                if span_el and len(span_el.get_text(strip=True)) > 3:
+                    title = span_el.get_text(strip=True)
+                else:
+                    title = h2_el.get_text(strip=True)
+
             price_el = card.find("span", {"class": "a-price-whole"})
             link_el = card.find("a", {"class": re.compile(r"a-link-normal")}, href=True)
 
-            if title_el and price_el and link_el:
-                title = title_el.get_text().strip()
+            if title and price_el and link_el:
                 raw_href = link_el["href"]
                 full_link = raw_href if raw_href.startswith("http") else "https://www.amazon.in" + raw_href
 
@@ -433,7 +444,7 @@ def scanner_loop():
                 fk_items = scan_flipkart_feed(session, rule["flipkart_url"], rule)
                 for item in fk_items:
                     p = item["price"]
-                    print(f"[{rule['name']} | FK] Found: {item['title'][:40]}... @ ₹{p}", flush=True)
+                    print(f"[{rule['name']} | FK] Matched: {item['title'][:40]}... @ ₹{p}", flush=True)
                     if min_p <= p <= max_p:
                         if item["link"] not in alerted_links:
                             alerted_links.add(item["link"])
@@ -445,7 +456,7 @@ def scanner_loop():
                 amz_items = scan_amazon_feed(session, rule["amazon_url"], rule)
                 for item in amz_items:
                     p = item["price"]
-                    print(f"[{rule['name']} | AMZ] Found: {item['title'][:40]}... @ ₹{p}", flush=True)
+                    print(f"[{rule['name']} | AMZ] Matched: {item['title'][:40]}... @ ₹{p}", flush=True)
                     if min_p <= p <= max_p:
                         if item["link"] not in alerted_links:
                             alerted_links.add(item["link"])
@@ -453,7 +464,7 @@ def scanner_loop():
                             send_telegram_alert(item["title"], p, "Amazon", item["link"])
                 time.sleep(2)
 
-            print("--- Cycle complete across all rules. Resting 60s ---", flush=True)
+            print("--- Sweep completed across all targets. Resting 60s ---", flush=True)
         except Exception as e:
             print(f"[!] Scanner loop error: {e}", flush=True)
 
@@ -465,11 +476,11 @@ if __name__ == "__main__":
     t_web = threading.Thread(target=run_web_server, daemon=True)
     t_web.start()
 
-    # Start Telegram message handler
+    # Start Telegram command handler
     t_bot = threading.Thread(target=telegram_message_listener, daemon=True)
     t_bot.start()
 
-    # Send startup alert
+    # Send startup confirmation
     try:
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
