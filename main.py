@@ -12,13 +12,16 @@ from bs4 import BeautifulSoup
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8873781750:AAGQM8fr7FMXnA-Az76ENswTXtjw17u2DyM")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "7726602615")
 
+# Aggressive exclusion list to prevent accessories/cases from triggering phone alerts
 GADGET_EXCLUDES = [
     "case", "cover", "tempered", "lens", "protector", "skin", "sticker", 
     "vinyl", "wrap", "film", "lamination", "layer", "back", "pouch", 
     "camera glass", "compatible for", "dummy", "box only", "cleaner", 
     "decal", "bumper", "guard", "carbon fiber", "silicone", "toy", 
     "model only", "no motherboard", "faulty", "keypad", "feature phone", 
-    "cable", "adapter", "battery", "charger", "earphone", "housing", "sim tray"
+    "cable", "adapter", "battery", "charger", "earphone", "housing", "sim tray",
+    "clear", "yellowing", "shockproof", "magsafe", "magnetic", "armor", "tpu",
+    "hybrid", "matte", "frosted", "stand", "holder", "holster"
 ]
 
 # Comprehensive 20-category tracking matrix
@@ -116,7 +119,7 @@ MASTER_TARGET_RULES = [
         "flipkart_url": "https://www.flipkart.com/search?q=iphone+14+plus&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone+14+plus&s=price-asc-rank"
     },
-        {
+    {
         "name": "Jio Bharat V4",
         "min_price": 500,
         "max_price": 1200,
@@ -125,7 +128,6 @@ MASTER_TARGET_RULES = [
         "flipkart_url": "https://www.flipkart.com/search?q=jio+bharat+v4&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=jio+bharat+v4&s=price-asc-rank"
     },
-
 
     # --- 2.5GHz+ GLITCH DROP RADARS ---
     {
@@ -236,7 +238,6 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Master Sentinel Cloud Engine is running 24/7.")
 
     def do_HEAD(self):
-        # Solves UptimeRobot 501 Not Implemented
         self.send_response(200)
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
@@ -273,7 +274,7 @@ def send_telegram_alert(title: str, price: int, platform: str, link: str):
     }
     try:
         r = requests.post(url, json=payload, timeout=8)
-        print(f"[Telegram Notification] Status: {r.status_code}", flush=True)
+        print(f"[Telegram Alert] Sent status code: {r.status_code}", flush=True)
     except Exception as e:
         print(f"[!] Telegram alert failed: {e}", flush=True)
 
@@ -322,21 +323,29 @@ def telegram_message_listener():
             elif resp.status_code == 409:
                 requests.get(f"{base_url}/deleteWebhook")
                 time.sleep(2)
-        except Exception as e:
-            time.sleep(2)
+        except Exception:
+            pass
         time.sleep(0.5)
 
 # ==================== PARSER AND SCRAPING ENGINES ====================
-def validate_item(title: str, rule: dict) -> bool:
-    t_clean = re.sub(r"[^a-z0-9\s]", " ", title.lower())
-    # 1. Check excludes
+def validate_item(title: str, link: str, rule: dict) -> bool:
+    """
+    Validates both the product title AND url path.
+    Prevents accessory listings hiding 'cover/case' inside the URL path from passing.
+    """
+    combined_raw = f"{title} {link}".lower()
+    combined_clean = re.sub(r"[^a-z0-9\s]", " ", combined_raw)
+
+    # 1. Check excludes across title and link
     for ex in rule["excludes"]:
-        if ex in t_clean:
+        if ex in combined_clean:
             return False
-    # 2. Check keywords (all tokens must appear in title)
+
+    # 2. Match all required target keywords
     for kw in rule["keywords"]:
-        if kw not in t_clean:
+        if kw not in combined_clean:
             return False
+
     return True
 
 def scan_flipkart_feed(session, feed_url: str, rule: dict):
@@ -361,14 +370,15 @@ def scan_flipkart_feed(session, feed_url: str, rule: dict):
 
             if title_el and price_el and link_el:
                 title = title_el.get_text().strip() or title_el.get("title", "")
-                if validate_item(title, rule):
+                raw_href = link_el["href"]
+                full_link = raw_href if raw_href.startswith("http") else "https://www.flipkart.com" + raw_href
+
+                if validate_item(title, full_link, rule):
                     price = clean_price(price_el.get_text())
-                    href = link_el["href"]
-                    link = href if href.startswith("http") else "https://www.flipkart.com" + href
                     items.append({
                         "title": title,
                         "price": price,
-                        "link": link,
+                        "link": full_link,
                         "platform": "Flipkart"
                     })
     except Exception as e:
@@ -393,9 +403,10 @@ def scan_amazon_feed(session, feed_url: str, rule: dict):
 
             if title_el and price_el and link_el:
                 title = title_el.get_text().strip()
-                if validate_item(title, rule):
-                    raw_href = link_el["href"]
-                    full_link = raw_href if raw_href.startswith("http") else "https://www.amazon.in" + raw_href
+                raw_href = link_el["href"]
+                full_link = raw_href if raw_href.startswith("http") else "https://www.amazon.in" + raw_href
+
+                if validate_item(title, full_link, rule):
                     items.append({
                         "title": title,
                         "price": clean_price(price_el.get_text()),
@@ -442,7 +453,7 @@ def scanner_loop():
                             send_telegram_alert(item["title"], p, "Amazon", item["link"])
                 time.sleep(2)
 
-            print("--- Cycle complete. Resting 60s ---", flush=True)
+            print("--- Cycle complete across all rules. Resting 60s ---", flush=True)
         except Exception as e:
             print(f"[!] Scanner loop error: {e}", flush=True)
 
@@ -458,7 +469,7 @@ if __name__ == "__main__":
     t_bot = threading.Thread(target=telegram_message_listener, daemon=True)
     t_bot.start()
 
-    # Send a launch notification
+    # Send startup alert
     try:
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
