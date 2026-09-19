@@ -116,16 +116,16 @@ MASTER_TARGET_RULES = [
         "flipkart_url": "https://www.flipkart.com/search?q=iphone+14+plus&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone+14+plus&s=price-asc-rank"
     },
-    {
+        {
         "name": "Jio Bharat V4",
-        "min_price": 50,
-        "max_price": 920,
-        # Split tokens ensure "JioBharat", "Jio-Bharat", and "Jio Bharat" all match successfully
+        "min_price": 500,
+        "max_price": 1200,
         "keywords": ["jio", "v4"],
-        "excludes": ["charger", "battery", "case", "cover", "earphone", "glass", "tempered"],
+        "excludes": ["cover", "case", "tempered", "glass", "battery", "charger", "cable", "guard"],
         "flipkart_url": "https://www.flipkart.com/search?q=jio+bharat+v4&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=jio+bharat+v4&s=price-asc-rank"
     },
+
 
     # --- 2.5GHz+ GLITCH DROP RADARS ---
     {
