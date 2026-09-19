@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 # ==================== CONFIGURATION ====================
 TELEGRAM_BOT_TOKEN = "8873781750:AAGQM8fr7FMXnA-Az76ENswTXtjw17u2DyM"
-TELEGRAM_CHAT_ID = "@Sahidinfobot"
+TELEGRAM_CHAT_ID = "7726602615"
 
 GADGET_EXCLUDES = [
     "case", "cover", "tempered", "lens", "protector", "skin", "sticker", 
