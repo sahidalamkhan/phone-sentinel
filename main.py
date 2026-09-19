@@ -119,7 +119,7 @@ MASTER_TARGET_RULES = [
     {
         "name": "Jio Bharat V4",
         "min_price": 50,
-        "max_price": 220,
+        "max_price": 920,
         "keywords": ["jio bharat v4"],
         "excludes": ["charger", "battery", "case", "cover", "earphone"],
         "flipkart_url": "https://www.flipkart.com/search?q=jio+bharat+v4&sort=price_asc",
