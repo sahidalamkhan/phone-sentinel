@@ -226,8 +226,13 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"Master Sentinel Cloud Engine is running 24/7.")
 
+    # Fixes UptimeRobot 501 Not Implemented (UptimeRobot defaults to HEAD)
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+
     def log_message(self, format, *args):
-        # Silence default HTTP server logging to keep terminal output clean
         return
 
 def run_web_server():
@@ -236,7 +241,7 @@ def run_web_server():
     print(f"Health check server listening on port {port}...", flush=True)
     server.serve_forever()
 
-# ==================== TELEGRAM ALERT NOTIFIER ====================
+# ==================== TELEGRAM HANDLER & LISTENER ====================
 def clean_price(price_str: str) -> int:
     cleaned = re.sub(r"[^\d]", "", price_str)
     return int(cleaned) if cleaned else 0
@@ -261,6 +266,46 @@ def send_telegram_alert(title: str, price: int, platform: str, link: str):
         requests.post(url, data=payload, timeout=8)
     except Exception as e:
         print(f"[!] Telegram alert failed: {e}", flush=True)
+
+def telegram_message_listener():
+    """Listens for user commands like /start and /status in Telegram"""
+    offset = 0
+    base_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+    while True:
+        try:
+            resp = requests.get(f"{base_url}/getUpdates?offset={offset}&timeout=20", timeout=30)
+            if resp.status_code == 200:
+                data = resp.json()
+                for update in data.get("result", []):
+                    offset = update["update_id"] + 1
+                    msg = update.get("message", {})
+                    chat_id = msg.get("chat", {}).get("id")
+                    text = msg.get("text", "")
+
+                    if not chat_id:
+                        continue
+
+                    if text.startswith("/start"):
+                        welcome_text = (
+                            "👋 <b>Master Sentinel Bot is Active!</b>\n\n"
+                            "✅ 24/7 Monitoring Enabled\n"
+                            f"📡 Tracking <b>{len(MASTER_TARGET_RULES)}</b> deal categories\n"
+                            "🔔 Price glitch alerts will arrive directly in this chat."
+                        )
+                        requests.post(
+                            f"{base_url}/sendMessage",
+                            data={"chat_id": chat_id, "text": welcome_text, "parse_mode": "HTML"},
+                            timeout=8
+                        )
+                    elif text.startswith("/status"):
+                        requests.post(
+                            f"{base_url}/sendMessage",
+                            data={"chat_id": chat_id, "text": "🟢 System Status: Active and running."},
+                            timeout=8
+                        )
+        except Exception:
+            pass
+        time.sleep(1)
 
 # ==================== PARSER AND SCRAPING ENGINES ====================
 def validate_item(title: str, rule: dict) -> bool:
@@ -365,10 +410,29 @@ def scanner_loop():
 
         time.sleep(60)
 
+# ==================== EXECUTION ENTRY POINT ====================
 if __name__ == "__main__":
-    # Start web server on background thread so Render passes health checks
+    # 1. Run web server in background to keep Render alive
     t_web = threading.Thread(target=run_web_server, daemon=True)
     t_web.start()
 
-    # Start scraping loop on the main thread
+    # 2. Run Telegram listener to handle /start and incoming messages
+    t_bot = threading.Thread(target=telegram_message_listener, daemon=True)
+    t_bot.start()
+
+    # 3. Send confirmation ping to Telegram
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={
+                "chat_id": TELEGRAM_CHAT_ID,
+                "text": "🟢 <b>Master Sentinel Bot is online and tracking deals!</b>",
+                "parse_mode": "HTML"
+            },
+            timeout=8
+        )
+    except Exception as e:
+        print(f"[!] Startup ping failed: {e}", flush=True)
+
+    # 4. Start main scanner loop
     scanner_loop()
