@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import time
+import datetime
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import requests
@@ -9,8 +10,8 @@ from curl_cffi import requests as cureq
 from bs4 import BeautifulSoup
 
 # ==================== CONFIGURATION ====================
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8873781750:AAGQM8fr7FMXnA-Az76ENswTXtjw17u2DyM")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "7726602615")
+TELEGRAM_BOT_TOKEN = "8873781750:AAGQM8fr7FMXnA-Az76ENswTXtjw17u2DyM"
+TELEGRAM_CHAT_ID = "7726602615"
 
 GADGET_EXCLUDES = [
     "case", "cover", "tempered", "lens", "protector", "skin", "sticker", 
@@ -18,227 +19,116 @@ GADGET_EXCLUDES = [
     "camera glass", "compatible for", "dummy", "box only", "cleaner", 
     "decal", "bumper", "guard", "carbon fiber", "silicone", "toy", 
     "model only", "no motherboard", "faulty", "keypad", "feature phone", 
-    "cable", "adapter", "battery", "charger", "earphone", "housing", "sim tray",
-    "clear", "yellowing", "shockproof", "magsafe", "magnetic", "armor", "tpu",
-    "hybrid", "matte", "frosted", "stand", "holder", "holster"
+    "cable", "adapter", "battery", "charger", "earphone", "housing", "sim tray"
 ]
 
+# Comprehensive tracking matrix with target glitch thresholds
 MASTER_TARGET_RULES = [
-    # --- TARGET: APPLE MACBOOK AIR M2 (Capped at 60k) ---
-    {
-        "name": "Apple MacBook Air M2",
-        "min_price": 40000,
-        "max_price": 60000,
-        "keywords": ["macbook", "air", "m2"],
-        "excludes": [
-            "cover", "case", "sleeve", "skin", "guard", "bag", "hub", "adapter", 
-            "cable", "dummy", "screen protector", "keyboard skin", "pro", "m1", "m3"
-        ],
-        "flipkart_url": "https://www.flipkart.com/search?q=apple+macbook+air+m2&sort=price_asc",
-        "amazon_url": "https://www.amazon.in/s?k=apple+macbook+air+m2&s=price-asc-rank"
-    },
-
-    # --- LAPTOP WRITING / DRAWING TABLETS ---
-    {
-        "name": "Pro Writing Pad (Wacom/XP-Pen/Huion)",
-        "min_price": 500,
-        "max_price": 1500,
-        "keywords": ["graphic", "tablet"],
-        "excludes": ["lcd", "rough", "toy", "slate", "nibs", "glove", "stand", "cable", "sleeve"],
-        "flipkart_url": "https://www.flipkart.com/search?q=graphic+pen+tablet&sort=price_asc",
-        "amazon_url": "https://www.amazon.in/s?k=graphic+drawing+pen+tablet&s=price-asc-rank"
-    },
-
-    # --- HIGH-SPEED SMARTPHONES & FLAGSHIP TABLETS ---
     {
         "name": "Google Pixel 10",
-        "min_price": 10000,
-        "max_price": 25000,
-        "keywords": ["pixel", "10"],
+        "min_price": 1,
+        "glitch_max": 25000,
+        "keywords": ["pixel 10"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=google+pixel+10&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=google+pixel+10&s=price-asc-rank"
     },
     {
-        "name": "iPad M4",
-        "min_price": 10000,
-        "max_price": 27000,
+        "name": "Apple iPad M4",
+        "min_price": 1,
+        "glitch_max": 27000,
         "keywords": ["ipad", "m4"],
         "excludes": GADGET_EXCLUDES + ["pencil", "sleeve", "keyboard"],
         "flipkart_url": "https://www.flipkart.com/search?q=ipad+m4&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=ipad+m4&s=price-asc-rank"
     },
     {
-        "name": "Samsung Galaxy S26 Ultra",
-        "min_price": 20000,
-        "max_price": 50000,
-        "keywords": ["s26", "ultra"],
+        "name": "Samsung S26 Ultra",
+        "min_price": 1,
+        "glitch_max": 50000,
+        "keywords": ["s26 ultra"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=samsung+s26+ultra&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=samsung+s26+ultra&s=price-asc-rank"
     },
     {
         "name": "iPhone 18 Pro Max",
-        "min_price": 40000,
-        "max_price": 120000,
-        "keywords": ["iphone", "18", "pro", "max"],
+        "min_price": 1,
+        "glitch_max": 120000,
+        "keywords": ["iphone 18 pro max"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=iphone+18+pro+max&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone+18+pro+max&s=price-asc-rank"
     },
     {
         "name": "iPhone 17 Pro Max",
-        "min_price": 30000,
-        "max_price": 100000,
-        "keywords": ["iphone", "17", "pro", "max"],
+        "min_price": 1,
+        "glitch_max": 100000,
+        "keywords": ["iphone 17 pro max"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=iphone+17+pro+max&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone+17+pro+max&s=price-asc-rank"
     },
     {
         "name": "iPhone 16 Pro Max",
-        "min_price": 20000,
-        "max_price": 50000,
-        "keywords": ["iphone", "16", "pro", "max"],
+        "min_price": 1,
+        "glitch_max": 50000,
+        "keywords": ["iphone 16 pro max"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=iphone+16+pro+max&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone+16+pro+max&s=price-asc-rank"
     },
     {
-        "name": "iPhone 16 Pro",
-        "min_price": 18000,
-        "max_price": 40000,
-        "keywords": ["iphone", "16", "pro"],
-        "excludes": GADGET_EXCLUDES + ["max"],
-        "flipkart_url": "https://www.flipkart.com/search?q=iphone+16+pro&sort=price_asc",
-        "amazon_url": "https://www.amazon.in/s?k=iphone+16+pro&s=price-asc-rank"
-    },
-    {
-        "name": "iPhone 15 Pro Max",
-        "min_price": 15000,
-        "max_price": 40000,
-        "keywords": ["iphone", "15", "pro", "max"],
-        "excludes": GADGET_EXCLUDES,
-        "flipkart_url": "https://www.flipkart.com/search?q=iphone+15+pro+max&sort=price_asc",
-        "amazon_url": "https://www.amazon.in/s?k=iphone+15+pro+max&s=price-asc-rank"
-    },
-    {
-        "name": "iPhone 14 Plus",
-        "min_price": 10000,
-        "max_price": 30000,
-        "keywords": ["iphone", "14", "plus"],
-        "excludes": GADGET_EXCLUDES,
-        "flipkart_url": "https://www.flipkart.com/search?q=iphone+14+plus&sort=price_asc",
-        "amazon_url": "https://www.amazon.in/s?k=iphone+14+plus&s=price-asc-rank"
-    },
-    {
-        "name": "Jio Bharat V4",
-        "min_price": 500,
-        "max_price": 1200,
-        "keywords": ["jio", "v4"],
-        "excludes": ["cover", "case", "tempered", "glass", "battery", "charger", "cable", "guard"],
-        "flipkart_url": "https://www.flipkart.com/search?q=jio+bharat+v4&sort=price_asc",
-        "amazon_url": "https://www.amazon.in/s?k=jio+bharat+v4&s=price-asc-rank"
-    },
-
-    # --- GLITCH DROP RADARS ---
-    {
-        "name": "Samsung 5G Glitch Hunter",
+        "name": "Samsung 5G Hunter",
         "min_price": 1,
-        "max_price": 1000,
+        "glitch_max": 1000,
         "keywords": ["samsung", "5g"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=samsung+5g+smartphone&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=samsung+5g+smartphone&s=price-asc-rank"
     },
     {
-        "name": "Realme 5G Glitch Hunter",
+        "name": "Realme 5G Hunter",
         "min_price": 1,
-        "max_price": 1000,
+        "glitch_max": 1000,
         "keywords": ["realme", "5g"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=realme+5g+smartphone&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=realme+5g+smartphone&s=price-asc-rank"
     },
     {
-        "name": "Vivo 5G Glitch Hunter",
+        "name": "Vivo 5G Hunter",
         "min_price": 1,
-        "max_price": 1000,
+        "glitch_max": 1000,
         "keywords": ["vivo", "5g"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=vivo+5g+smartphone&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=vivo+5g+smartphone&s=price-asc-rank"
     },
     {
-        "name": "Oppo 5G Glitch Hunter",
+        "name": "Oppo 5G Hunter",
         "min_price": 1,
-        "max_price": 1000,
+        "glitch_max": 1000,
         "keywords": ["oppo", "5g"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=oppo+5g+smartphone&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=oppo+5g+smartphone&s=price-asc-rank"
     },
     {
-        "name": "Apple iPhone Glitch Hunter",
+        "name": "Apple Glitch Hunter",
         "min_price": 1,
-        "max_price": 1000,
+        "glitch_max": 1000,
         "keywords": ["iphone"],
         "excludes": GADGET_EXCLUDES,
         "flipkart_url": "https://www.flipkart.com/search?q=iphone&sort=price_asc",
         "amazon_url": "https://www.amazon.in/s?k=iphone&s=price-asc-rank"
-    },
-
-    # --- OILS, GROCERY & DAILY ESSENTIALS ---
-    {
-        "name": "Mustard Oil 1L",
-        "min_price": 40,
-        "max_price": 100,
-        "keywords": ["mustard", "oil"],
-        "excludes": ["15 l", "5 l", "500 ml", "200 ml", "bottle only"],
-        "flipkart_url": "https://www.flipkart.com/search?q=mustard+oil+1l&sort=price_asc",
-        "amazon_url": "https://www.amazon.in/s?k=mustard+oil+1l&s=price-asc-rank"
-    },
-    {
-        "name": "Saloni Kachchhi Ghani 5L",
-        "min_price": 200,
-        "max_price": 500,
-        "keywords": ["saloni", "5"],
-        "excludes": ["1 l", "500 ml", "empty tin"],
-        "flipkart_url": "https://www.flipkart.com/search?q=saloni+kachchi+ghani+5l&sort=price_asc",
-        "amazon_url": "https://www.amazon.in/s?k=saloni+mustard+oil+5l&s=price-asc-rank"
-    },
-    {
-        "name": "Parachute Coconut Oil 1L",
-        "min_price": 60,
-        "max_price": 200,
-        "keywords": ["parachute", "1"],
-        "excludes": ["body lotion", "500 ml", "200 ml", "100 ml"],
-        "flipkart_url": "https://www.flipkart.com/search?q=parachute+coconut+oil+1l&sort=price_asc",
-        "amazon_url": "https://www.amazon.in/s?k=parachute+coconut+oil+1l&s=price-asc-rank"
-    },
-    {
-        "name": "Peter England Jeans 32",
-        "min_price": 150,
-        "max_price": 450,
-        "keywords": ["peter england", "jeans"],
-        "excludes": ["shirt", "t-shirt", "trouser", "tracksuit", "brief", "socks", "belt"],
-        "flipkart_url": "https://www.flipkart.com/search?q=peter+england+jeans+32&sort=price_asc",
-        "amazon_url": "https://www.amazon.in/s?k=peter+england+jeans+32&s=price-asc-rank"
     }
 ]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
-    "Sec-Ch-Ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
-    "Sec-Ch-Ua-Mobile": "?0",
-    "Sec-Ch-Ua-Platform": '"Windows"',
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-User": "?1",
-    "Upgrade-Insecure-Requests": "1"
+    "Accept-Encoding": "gzip, deflate, br",
+    "Referer": "https://www.google.com/"
 }
 
 # ==================== CLOUD KEEP-ALIVE SERVER ====================
@@ -249,11 +139,6 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"Master Sentinel Cloud Engine is running 24/7.")
 
-    def do_HEAD(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-
     def log_message(self, format, *args):
         return
 
@@ -263,99 +148,75 @@ def run_web_server():
     print(f"Health check server listening on port {port}...", flush=True)
     server.serve_forever()
 
-# ==================== TELEGRAM HANDLER & LISTENER ====================
+# ==================== TELEGRAM GUI & ALERT DISPATCH ====================
 def clean_price(price_str: str) -> int:
     cleaned = re.sub(r"[^\d]", "", price_str)
     return int(cleaned) if cleaned else 0
 
-def send_telegram_alert(title: str, price: int, platform: str, link: str):
-    text = (
-        f"🚨 <b>PRICE DROP / GLITCH DETECTED!</b>\n\n"
-        f"<b>Item:</b> {title}\n"
-        f"<b>Platform:</b> {platform}\n"
-        f"<b>Price:</b> ₹{price:,}\n\n"
-        f"⚡ <b>Tap below to buy immediately:</b>\n"
-        f"👉 <a href='{link}'>OPEN PRODUCT / CHECKOUT</a>"
-    )
+def send_telegram_raw(text: str):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": text,
         "parse_mode": "HTML",
-        "disable_web_page_preview": False
+        "disable_web_page_preview": True
     }
     try:
-        r = requests.post(url, json=payload, timeout=8)
-        print(f"[Telegram Alert] Status: {r.status_code}", flush=True)
+        requests.post(url, data=payload, timeout=10)
     except Exception as e:
-        print(f"[!] Telegram alert failed: {e}", flush=True)
+        print(f"[!] Telegram request failed: {e}", flush=True)
 
-def telegram_message_listener():
-    offset = None
-    base_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
-    print("[*] Telegram listener initialized...", flush=True)
+def send_instant_glitch_alert(title: str, price: int, platform: str, link: str):
+    msg = (
+        f"🚨 <b>GLITCH / DROP CONFIRMED!</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📱 <b>Item:</b> {title}\n"
+        f"🏷 <b>Platform:</b> {platform}\n"
+        f"💰 <b>Price:</b> ₹{price:,}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"⚡ <a href='{link}'><b>[TAP HERE TO BUY IMMEDIATELY]</b></a>"
+    )
+    send_telegram_raw(msg)
 
-    while True:
-        try:
-            params = {"timeout": 20}
-            if offset is not None:
-                params["offset"] = offset
+def send_gui_dashboard(market_summary: list):
+    """Sends a clean, structured table-view of all live items & prices."""
+    now_str = datetime.datetime.now().strftime("%I:%M %p")
+    
+    header = (
+        f"📊 <b>LIVE SENTINEL MARKET DASHBOARD</b>\n"
+        f"🕒 <i>Synced: {now_str} IST | Status: Active</i>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+    )
+    
+    body = ""
+    for item in market_summary:
+        name = item['name']
+        price = item['price']
+        platform = item['platform']
+        link = item['link']
+        
+        if price > 0:
+            price_display = f"₹{price:,}"
+            body += f"🔹 <b>{name}</b>\n   └ {platform} • <b>{price_display}</b> ➔ <a href='{link}'>View</a>\n\n"
+        else:
+            body += f"🔹 <b>{name}</b>\n   └ <i>No live stock matched filters</i>\n\n"
+            
+    footer = (
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🟢 <i>Autopilot: Next sweep begins in 60s...</i>"
+    )
+    
+    send_telegram_raw(header + body + footer)
 
-            resp = requests.get(f"{base_url}/getUpdates", params=params, timeout=25)
-            if resp.status_code == 200:
-                data = resp.json()
-                for update in data.get("result", []):
-                    offset = update["update_id"] + 1
-                    msg = update.get("message", {})
-                    chat_id = msg.get("chat", {}).get("id")
-                    text = msg.get("text", "").strip()
-
-                    if not chat_id or not text:
-                        continue
-
-                    if text.startswith("/start"):
-                        welcome_text = (
-                            "👋 <b>Master Sentinel Bot is Active!</b>\n\n"
-                            "✅ 24/7 Monitoring Enabled\n"
-                            f"📡 Tracking <b>{len(MASTER_TARGET_RULES)}</b> deal categories\n"
-                            "🔔 Price glitch alerts will arrive directly in this chat."
-                        )
-                        requests.post(
-                            f"{base_url}/sendMessage",
-                            json={"chat_id": chat_id, "text": welcome_text, "parse_mode": "HTML"},
-                            timeout=8
-                        )
-                    elif text.startswith("/status"):
-                        requests.post(
-                            f"{base_url}/sendMessage",
-                            json={"chat_id": chat_id, "text": "🟢 System Status: Active and hunting deals."},
-                            timeout=8
-                        )
-            elif resp.status_code == 409:
-                requests.get(f"{base_url}/deleteWebhook")
-                time.sleep(2)
-        except Exception:
-            pass
-        time.sleep(0.5)
-
-# ==================== PARSER AND SCRAPING ENGINES ====================
-def validate_item(title: str, link: str, rule: dict) -> bool:
-    title_clean = re.sub(r"[^a-z0-9\s]", " ", title.lower())
-    url_path = link.split("?")[0].lower()
-    path_clean = re.sub(r"[^a-z0-9\s]", " ", url_path)
-    combined_for_excludes = f"{title_clean} {path_clean}"
-
-    # 1. Exclude check: reject if an excluded token appears in title or URL path
+# ==================== PARSING & CRAWLING ENGINES ====================
+def validate_item(title: str, rule: dict) -> bool:
+    t_low = title.lower()
     for ex in rule["excludes"]:
-        if ex in combined_for_excludes:
+        if ex in t_low:
             return False
-
-    # 2. Mandatory Target Keywords: Must appear directly in the product TITLE
     for kw in rule["keywords"]:
-        pattern = r"\b" + re.escape(kw) + r"\b"
-        if not re.search(pattern, title_clean):
+        if kw not in t_low:
             return False
-
     return True
 
 def scan_flipkart_feed(session, feed_url: str, rule: dict):
@@ -363,36 +224,24 @@ def scan_flipkart_feed(session, feed_url: str, rule: dict):
     try:
         resp = session.get(feed_url, headers=HEADERS, timeout=12)
         if resp.status_code != 200:
-            print(f"[!] Flipkart returned HTTP {resp.status_code}", flush=True)
             return items
-
         soup = BeautifulSoup(resp.text, "html.parser")
-        cards = soup.find_all("div", {"class": re.compile(r"tUxRFH|cPHDOP|_1sdMkc|slAVV4|_75nlfW")})
-        
+        cards = soup.find_all("div", {"class": re.compile(r"tUxRFH|cPHDOP|_1sdMkc")})
         for card in cards:
-            title_el = (
-                card.find("div", {"class": re.compile(r"KzDlHZ|wjcEIp|_4rR01T")}) or 
-                card.find("a", {"class": re.compile(r"WKTcLC")}) or
-                card.find("a", {"title": True})
-            )
+            title_el = card.find("div", {"class": re.compile(r"KzDlHZ|wjcEIp|_4rR01T")}) or card.find("a", {"title": True})
             price_el = card.find("div", {"class": re.compile(r"Nx9bqj|_30jeq3")})
             link_el = card.find("a", href=True)
-
             if title_el and price_el and link_el:
                 title = title_el.get_text().strip() or title_el.get("title", "")
-                raw_href = link_el["href"]
-                full_link = raw_href if raw_href.startswith("http") else "https://www.flipkart.com" + raw_href
-
-                if validate_item(title, full_link, rule):
-                    price = clean_price(price_el.get_text())
+                if validate_item(title, rule):
                     items.append({
                         "title": title,
-                        "price": price,
-                        "link": full_link,
+                        "price": clean_price(price_el.get_text()),
+                        "link": "https://www.flipkart.com" + link_el["href"],
                         "platform": "Flipkart"
                     })
-    except Exception as e:
-        print(f"[!] Flipkart scrape exception for {rule['name']}: {e}", flush=True)
+    except Exception:
+        pass
     return items
 
 def scan_amazon_feed(session, feed_url: str, rule: dict):
@@ -400,101 +249,96 @@ def scan_amazon_feed(session, feed_url: str, rule: dict):
     try:
         resp = session.get(feed_url, headers=HEADERS, timeout=12)
         if resp.status_code != 200:
-            print(f"[!] Amazon returned HTTP {resp.status_code}", flush=True)
             return items
-
         soup = BeautifulSoup(resp.text, "html.parser")
         cards = soup.find_all("div", {"data-component-type": "s-search-result"})
-
         for card in cards:
-            title = ""
-            h2_el = card.find("h2")
-            if h2_el:
-                span_el = h2_el.find("span", {"class": re.compile(r"a-text-normal")}) or h2_el.find("span")
-                if span_el and len(span_el.get_text(strip=True)) > 3:
-                    title = span_el.get_text(strip=True)
-                else:
-                    title = h2_el.get_text(strip=True)
-
+            title_el = card.find("h2")
             price_el = card.find("span", {"class": "a-price-whole"})
-            link_el = card.find("a", {"class": re.compile(r"a-link-normal")}, href=True)
-
-            if title and price_el and link_el:
-                raw_href = link_el["href"]
-                full_link = raw_href if raw_href.startswith("http") else "https://www.amazon.in" + raw_href
-
-                if validate_item(title, full_link, rule):
+            link_el = card.find("a", {"class": "a-link-normal s-no-outline"}, href=True)
+            if title_el and price_el and link_el:
+                title = title_el.get_text().strip()
+                if validate_item(title, rule):
+                    raw_href = link_el["href"]
+                    full_link = raw_href if raw_href.startswith("http") else "https://www.amazon.in" + raw_href
                     items.append({
                         "title": title,
                         "price": clean_price(price_el.get_text()),
                         "link": full_link,
                         "platform": "Amazon"
                     })
-    except Exception as e:
-        print(f"[!] Amazon scrape exception for {rule['name']}: {e}", flush=True)
+    except Exception:
+        pass
     return items
 
-# ==================== MAIN SCANNER LOOP ====================
+# ==================== MAIN AUTOMATION LOOP ====================
 def scanner_loop():
     print(f"Master Sentinel Loop active. Tracking {len(MASTER_TARGET_RULES)} categories 24/7...", flush=True)
-    alerted_links = set()
+    alerted_glitch_links = set()
     session = cureq.Session(impersonate="chrome120")
 
     while True:
         try:
+            dashboard_summary = []
+
             for rule in MASTER_TARGET_RULES:
-                min_p = rule.get("min_price", 1)
-                max_p = rule["max_price"]
+                glitch_threshold = rule["glitch_max"]
+                lowest_item = None
 
                 # 1. Sweep Flipkart
                 fk_items = scan_flipkart_feed(session, rule["flipkart_url"], rule)
                 for item in fk_items:
                     p = item["price"]
-                    print(f"[{rule['name']} | FK] Matched: {item['title'][:40]}... @ ₹{p}", flush=True)
-                    if min_p <= p <= max_p:
-                        if item["link"] not in alerted_links:
-                            alerted_links.add(item["link"])
-                            print(f"🔥 [TARGET HIT] {item['title']} @ ₹{p:,} on Flipkart", flush=True)
-                            send_telegram_alert(item["title"], p, "Flipkart", item["link"])
-                time.sleep(2)
+                    if p > 0:
+                        if lowest_item is None or p < lowest_item["price"]:
+                            lowest_item = item
+                        # Check for instant glitch trigger
+                        if p <= glitch_threshold and item["link"] not in alerted_glitch_links:
+                            alerted_glitch_links.add(item["link"])
+                            print(f"[GLITCH DROP] {item['title']} @ ₹{p:,} on Flipkart", flush=True)
+                            send_instant_glitch_alert(item["title"], p, "Flipkart", item["link"])
+                time.sleep(1.5)
 
                 # 2. Sweep Amazon
                 amz_items = scan_amazon_feed(session, rule["amazon_url"], rule)
                 for item in amz_items:
                     p = item["price"]
-                    print(f"[{rule['name']} | AMZ] Matched: {item['title'][:40]}... @ ₹{p}", flush=True)
-                    if min_p <= p <= max_p:
-                        if item["link"] not in alerted_links:
-                            alerted_links.add(item["link"])
-                            print(f"🔥 [TARGET HIT] {item['title']} @ ₹{p:,} on Amazon", flush=True)
-                            send_telegram_alert(item["title"], p, "Amazon", item["link"])
-                time.sleep(2)
+                    if p > 0:
+                        if lowest_item is None or p < lowest_item["price"]:
+                            lowest_item = item
+                        # Check for instant glitch trigger
+                        if p <= glitch_threshold and item["link"] not in alerted_glitch_links:
+                            alerted_glitch_links.add(item["link"])
+                            print(f"[GLITCH DROP] {item['title']} @ ₹{p:,} on Amazon", flush=True)
+                            send_instant_glitch_alert(item["title"], p, "Amazon", item["link"])
+                time.sleep(1.5)
 
-            print("--- Sweep completed across all targets. Resting 60s ---", flush=True)
+                # Collect current lowest price for the Telegram GUI Dashboard
+                if lowest_item:
+                    dashboard_summary.append({
+                        "name": rule["name"],
+                        "price": lowest_item["price"],
+                        "platform": lowest_item["platform"],
+                        "link": lowest_item["link"]
+                    })
+                else:
+                    dashboard_summary.append({
+                        "name": rule["name"],
+                        "price": 0,
+                        "platform": "N/A",
+                        "link": "#"
+                    })
+
+            # Broadcast the complete live GUI market table to your Telegram
+            send_gui_dashboard(dashboard_summary)
+            print("Sweep cycle complete. Dashboard sent to Telegram. Sleeping 60s...", flush=True)
+
         except Exception as e:
             print(f"[!] Scanner loop error: {e}", flush=True)
 
         time.sleep(60)
 
-# ==================== EXECUTION ENTRY POINT ====================
 if __name__ == "__main__":
     t_web = threading.Thread(target=run_web_server, daemon=True)
     t_web.start()
-
-    t_bot = threading.Thread(target=telegram_message_listener, daemon=True)
-    t_bot.start()
-
-    try:
-        requests.post(
-            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            json={
-                "chat_id": TELEGRAM_CHAT_ID,
-                "text": "🟢 <b>Master Sentinel Bot is online and tracking deals!</b>",
-                "parse_mode": "HTML"
-            },
-            timeout=8
-        )
-    except Exception as e:
-        print(f"[!] Startup alert failed: {e}", flush=True)
-
     scanner_loop()
