@@ -1,3 +1,4 @@
+
 import os
 import re
 import sys
@@ -13,20 +14,22 @@ from bs4 import BeautifulSoup
 TELEGRAM_BOT_TOKEN = "8873781750:AAGQM8fr7FMXnA-Az76ENswTXtjw17u2DyM"
 TELEGRAM_CHAT_ID = "7726602615"
 
+# Robust negative keywords to filter cases, covers, screen guards, and accessories
 GADGET_EXCLUDES = [
     "case", "cover", "tempered", "lens", "protector", "skin", "sticker", 
     "vinyl", "wrap", "film", "lamination", "layer", "back", "pouch", 
     "camera glass", "compatible for", "dummy", "box only", "cleaner", 
     "decal", "bumper", "guard", "carbon fiber", "silicone", "toy", 
     "model only", "no motherboard", "faulty", "keypad", "feature phone", 
-    "cable", "adapter", "battery", "charger", "earphone", "housing", "sim tray"
+    "cable", "adapter", "battery", "charger", "earphone", "housing", "sim tray",
+    "clear", "yellowing", "shockproof", "anti-scratch", "transparent", 
+    "matte", "hybrid", "armor", "magsafe case", "stand", "holder"
 ]
 
-# Comprehensive tracking matrix with target glitch thresholds
 MASTER_TARGET_RULES = [
     {
         "name": "Google Pixel 10",
-        "min_price": 1,
+        "min_price": 1000,
         "glitch_max": 25000,
         "keywords": ["pixel 10"],
         "excludes": GADGET_EXCLUDES,
@@ -35,7 +38,7 @@ MASTER_TARGET_RULES = [
     },
     {
         "name": "Apple iPad M4",
-        "min_price": 1,
+        "min_price": 1000,
         "glitch_max": 27000,
         "keywords": ["ipad", "m4"],
         "excludes": GADGET_EXCLUDES + ["pencil", "sleeve", "keyboard"],
@@ -44,7 +47,7 @@ MASTER_TARGET_RULES = [
     },
     {
         "name": "Samsung S26 Ultra",
-        "min_price": 1,
+        "min_price": 1000,
         "glitch_max": 50000,
         "keywords": ["s26 ultra"],
         "excludes": GADGET_EXCLUDES,
@@ -53,7 +56,7 @@ MASTER_TARGET_RULES = [
     },
     {
         "name": "iPhone 18 Pro Max",
-        "min_price": 1,
+        "min_price": 1000,
         "glitch_max": 120000,
         "keywords": ["iphone 18 pro max"],
         "excludes": GADGET_EXCLUDES,
@@ -62,7 +65,7 @@ MASTER_TARGET_RULES = [
     },
     {
         "name": "iPhone 17 Pro Max",
-        "min_price": 1,
+        "min_price": 1000,
         "glitch_max": 100000,
         "keywords": ["iphone 17 pro max"],
         "excludes": GADGET_EXCLUDES,
@@ -71,7 +74,7 @@ MASTER_TARGET_RULES = [
     },
     {
         "name": "iPhone 16 Pro Max",
-        "min_price": 1,
+        "min_price": 1000,
         "glitch_max": 50000,
         "keywords": ["iphone 16 pro max"],
         "excludes": GADGET_EXCLUDES,
@@ -148,7 +151,7 @@ def run_web_server():
     print(f"Health check server listening on port {port}...", flush=True)
     server.serve_forever()
 
-# ==================== TELEGRAM GUI & ALERT DISPATCH ====================
+# ==================== TELEGRAM DISPATCH ====================
 def clean_price(price_str: str) -> int:
     cleaned = re.sub(r"[^\d]", "", price_str)
     return int(cleaned) if cleaned else 0
@@ -168,7 +171,7 @@ def send_telegram_raw(text: str):
 
 def send_instant_glitch_alert(title: str, price: int, platform: str, link: str):
     msg = (
-        f"🚨 <b>GLITCH / DROP CONFIRMED!</b>\n"
+        f"🚨 <b>REAL GLITCH DROP CONFIRMED!</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"📱 <b>Item:</b> {title}\n"
         f"🏷 <b>Platform:</b> {platform}\n"
@@ -179,15 +182,12 @@ def send_instant_glitch_alert(title: str, price: int, platform: str, link: str):
     send_telegram_raw(msg)
 
 def send_gui_dashboard(market_summary: list):
-    """Sends a clean, structured table-view of all live items & prices."""
     now_str = datetime.datetime.now().strftime("%I:%M %p")
-    
     header = (
         f"📊 <b>LIVE SENTINEL MARKET DASHBOARD</b>\n"
         f"🕒 <i>Synced: {now_str} IST | Status: Active</i>\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
     )
-    
     body = ""
     for item in market_summary:
         name = item['name']
@@ -199,16 +199,15 @@ def send_gui_dashboard(market_summary: list):
             price_display = f"₹{price:,}"
             body += f"🔹 <b>{name}</b>\n   └ {platform} • <b>{price_display}</b> ➔ <a href='{link}'>View</a>\n\n"
         else:
-            body += f"🔹 <b>{name}</b>\n   └ <i>No live stock matched filters</i>\n\n"
+            body += f"🔹 <b>{name}</b>\n   └ <i>No phones matched active price filters</i>\n\n"
             
     footer = (
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🟢 <i>Autopilot: Next sweep begins in 60s...</i>"
+        f"🟢 <i>Radar scanning 24/7. Next summary in 30 mins.</i>"
     )
-    
     send_telegram_raw(header + body + footer)
 
-# ==================== PARSING & CRAWLING ENGINES ====================
+# ==================== PARSER & VALIDATOR ====================
 def validate_item(title: str, rule: dict) -> bool:
     t_low = title.lower()
     for ex in rule["excludes"]:
@@ -273,13 +272,18 @@ def scan_amazon_feed(session, feed_url: str, rule: dict):
 
 # ==================== MAIN AUTOMATION LOOP ====================
 def scanner_loop():
-    print(f"Master Sentinel Loop active. Tracking {len(MASTER_TARGET_RULES)} categories 24/7...", flush=True)
+    print("Master Sentinel Loop active. Continuous scanning with 30-min dashboard cycle...", flush=True)
     alerted_glitch_links = set()
     session = cureq.Session(impersonate="chrome120")
+    
+    last_dashboard_time = 0
+    DASHBOARD_INTERVAL = 1800  # 30 minutes in seconds
 
     while True:
         try:
             dashboard_summary = []
+            current_time = time.time()
+            should_send_dashboard = (current_time - last_dashboard_time) >= DASHBOARD_INTERVAL
 
             for rule in MASTER_TARGET_RULES:
                 glitch_threshold = rule["glitch_max"]
@@ -292,12 +296,12 @@ def scanner_loop():
                     if p > 0:
                         if lowest_item is None or p < lowest_item["price"]:
                             lowest_item = item
-                        # Check for instant glitch trigger
+                        # Real-time glitch trigger
                         if p <= glitch_threshold and item["link"] not in alerted_glitch_links:
                             alerted_glitch_links.add(item["link"])
                             print(f"[GLITCH DROP] {item['title']} @ ₹{p:,} on Flipkart", flush=True)
                             send_instant_glitch_alert(item["title"], p, "Flipkart", item["link"])
-                time.sleep(1.5)
+                time.sleep(1)
 
                 # 2. Sweep Amazon
                 amz_items = scan_amazon_feed(session, rule["amazon_url"], rule)
@@ -306,14 +310,14 @@ def scanner_loop():
                     if p > 0:
                         if lowest_item is None or p < lowest_item["price"]:
                             lowest_item = item
-                        # Check for instant glitch trigger
+                        # Real-time glitch trigger
                         if p <= glitch_threshold and item["link"] not in alerted_glitch_links:
                             alerted_glitch_links.add(item["link"])
                             print(f"[GLITCH DROP] {item['title']} @ ₹{p:,} on Amazon", flush=True)
                             send_instant_glitch_alert(item["title"], p, "Amazon", item["link"])
-                time.sleep(1.5)
+                time.sleep(1)
 
-                # Collect current lowest price for the Telegram GUI Dashboard
+                # Record data for periodic summary
                 if lowest_item:
                     dashboard_summary.append({
                         "name": rule["name"],
@@ -329,9 +333,11 @@ def scanner_loop():
                         "link": "#"
                     })
 
-            # Broadcast the complete live GUI market table to your Telegram
-            send_gui_dashboard(dashboard_summary)
-            print("Sweep cycle complete. Dashboard sent to Telegram. Sleeping 60s...", flush=True)
+            # Send periodic dashboard table every 30 minutes
+            if should_send_dashboard:
+                send_gui_dashboard(dashboard_summary)
+                last_dashboard_time = current_time
+                print("Dashboard summary delivered to Telegram.", flush=True)
 
         except Exception as e:
             print(f"[!] Scanner loop error: {e}", flush=True)
